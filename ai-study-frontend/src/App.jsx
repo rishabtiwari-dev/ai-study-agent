@@ -7,12 +7,19 @@ function App() {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!text.trim()) return;
+    console.log("🔥 BUTTON CLICKED");
+
+    if (!text.trim()) {
+      console.log("❌ Empty input");
+      return;
+    }
 
     setLoading(true);
     setResult(null);
 
     try {
+      console.log("🚀 Sending request...");
+
       const res = await fetch(
         "https://ai-study-agent-1.onrender.com/study",
         {
@@ -24,10 +31,21 @@ function App() {
         }
       );
 
+      console.log("✅ Response received:", res);
+
       const data = await res.json();
+      console.log("📦 Data:", data);
+
+      // 🔥 Handle API errors properly
+      if (data.error) {
+        alert("❌ Backend Error: " + data.error);
+        return;
+      }
+
       setResult(data);
     } catch (err) {
-      alert("⚠️ Something went wrong!");
+      console.error("❌ Fetch Error:", err);
+      alert("⚠️ Failed to connect to backend!");
     }
 
     setLoading(false);
