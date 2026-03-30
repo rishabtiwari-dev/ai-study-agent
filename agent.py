@@ -1,58 +1,51 @@
 import os
 import json
-from google import genai
+import requests
+from dotenv import load_dotenv
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+load_dotenv()
 
-def clean_json(text):
-    text = text.strip()
-
-    if text.startswith("```json"):
-        text = text[7:]
-    if text.startswith("```"):
-        text = text[3:]
-    if text.endswith("```"):
-        text = text[:-3]
-
-    return text.strip()
+API_KEY = os.getenv("GEMINI_API_KEY")
 
 def study_agent(user_text):
     try:
-        prompt = f"""
-        You are an AI Study Assistant.
+        url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
-        From the given text:
-        1. Provide a short summary
-        2. Explain it simply
-        3. Generate exactly 3 quiz questions
+        payload = {
+            "contents": [
+                {
+                    "parts": [
+                        {
+                            "text": f"""
+You are an AI Study Assistant.
 
-        Respond ONLY in valid JSON format:
-        {{
-            "summary": "...",
-            "simple_explanation": "...",
-            "quiz_questions": ["...", "...", "..."]
-        }}
+From the given text:
+1. Provide a short summary
+2. Explain it simply
+3. Generate exactly 3 quiz questions
 
-        Text:
-        {user_text}
-        """
+Respond ONLY in valid JSON format:
+{{
+    "summary": "...",
+    "simple_explanation": "...",
+    "quiz_questions": ["...", "...", "..."]
+}}
 
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt
-        )
+Text:
+{user_text}
+"""
+                        }
+                    ]
+                }
+            ]
+        }
 
-        cleaned = clean_json(response.text)
+        response = requests.post(url, json=payload)
+        data = response.json()
 
-        try:
-            data = json.loads(cleaned)
-        except:
-            return {
-                "error": "Invalid JSON from model",
-                "raw_output": cleaned
-            }
+        text_output = data["candidates"][0]["content"]["parts"][0]["text"]
 
-        return data
+        return json.loads(text_output)
 
     except Exception as e:
         return {"error": str(e)}
