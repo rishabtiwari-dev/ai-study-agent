@@ -7,6 +7,11 @@ load_dotenv()
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 
+def clean_text(text):
+    text = text.strip()
+    text = text.replace("```json", "").replace("```", "")
+    return text.strip()
+
 def study_agent(user_text):
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
@@ -15,7 +20,8 @@ def study_agent(user_text):
             "contents": [
                 {
                     "parts": [
-                        {"text": f"""
+                        {
+                            "text": f"""
 You are an AI Study Assistant.
 
 From the given text:
@@ -32,10 +38,15 @@ Respond ONLY in valid JSON format:
 
 Text:
 {user_text}
-"""}
+"""
+                        }
                     ]
                 }
-            ]
+            ],
+            "generationConfig": {
+                "temperature": 0.7,
+                "maxOutputTokens": 512
+            }
         }
 
         headers = {
@@ -44,29 +55,51 @@ Text:
 
         response = requests.post(url, headers=headers, json=payload)
 
-        # 🔥 PRINT RAW RESPONSE (IMPORTANT)
+        # 🔥 DEBUG (keep this for now)
         print("STATUS:", response.status_code)
-        print("RAW:", response.text)
+        print("RAW RESPONSE:", response.text)
 
         data = response.json()
 
-        if "candidates" not in data:
+        # ❌ If API error
+        if response.status_code != 200:
             return {
-                "error": "API did not return candidates",
+                "error": "API request failed",
                 "details": data
             }
 
-        text_output = data["candidates"][0]["content"]["parts"][0]["text"]
+        # ❌ If no candidates
+        if "candidates" not in data or len(data["candidates"]) == 0:
+            return {
+                "error": "No candidates returned",
+                "details": data
+            }
 
-        # clean markdown if present
-        text_output = text_output.strip().replace("```json", "").replace("```", "")
+        parts = data["candidates"][0]["content"].get("parts", [])
 
+        if not parts:
+            return {
+                "error": "Empty response from model",
+                "details": data
+            }
+
+        text_output = parts[0].get("text", "")
+
+        if not text_output:
+            return {
+                "error": "No text in response",
+                "details": data
+            }
+
+        cleaned = clean_text(text_output)
+
+        # ✅ Try parsing JSON
         try:
-            return json.loads(text_output)
+            return json.loads(cleaned)
         except:
             return {
                 "error": "Invalid JSON from model",
-                "raw_output": text_output
+                "raw_output": cleaned
             }
 
     except Exception as e:
