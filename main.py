@@ -2,6 +2,9 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from agent import study_agent
 from fastapi.middleware.cors import CORSMiddleware
+import os
+
+print("🔥 USING API KEY:", os.getenv("GOOGLE_API_KEY"))
 
 # Create app ONCE
 app = FastAPI()
