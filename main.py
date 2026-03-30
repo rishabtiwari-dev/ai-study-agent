@@ -4,7 +4,6 @@ from agent import study_agent
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
-print("🔥 USING API KEY:", os.getenv("GEMINI_API_KEY"))
 
 # Create app ONCE
 app = FastAPI()
@@ -31,3 +30,5 @@ def home():
 @app.post("/study")
 def study(req: Request):
     return study_agent(req.text)
+
+print("KEY STARTS WITH:", os.getenv("GEMINI_API_KEY")[:6])
