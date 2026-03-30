@@ -7,30 +7,15 @@ load_dotenv()
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 
-
-def clean_json(text):
-    text = text.strip()
-
-    if text.startswith("```json"):
-        text = text[7:]
-    if text.startswith("```"):
-        text = text[3:]
-    if text.endswith("```"):
-        text = text[:-3]
-
-    return text.strip()
-
-
 def study_agent(user_text):
     try:
-        url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
         payload = {
             "contents": [
                 {
                     "parts": [
-                        {
-                            "text": f"""
+                        {"text": f"""
 You are an AI Study Assistant.
 
 From the given text:
@@ -47,36 +32,41 @@ Respond ONLY in valid JSON format:
 
 Text:
 {user_text}
-"""
-                        }
+"""}
                     ]
                 }
             ]
         }
 
-        response = requests.post(url, json=payload)
+        headers = {
+            "Content-Type": "application/json"
+        }
+
+        response = requests.post(url, headers=headers, json=payload)
+
+        # 🔥 PRINT RAW RESPONSE (IMPORTANT)
+        print("STATUS:", response.status_code)
+        print("RAW:", response.text)
+
         data = response.json()
 
-        # 🔥 DEBUG (very important)
-        print("FULL API RESPONSE:", data)
-
-        # ✅ Handle API errors safely
         if "candidates" not in data:
             return {
-                "error": "Invalid response from API",
+                "error": "API did not return candidates",
                 "details": data
             }
 
         text_output = data["candidates"][0]["content"]["parts"][0]["text"]
 
-        cleaned = clean_json(text_output)
+        # clean markdown if present
+        text_output = text_output.strip().replace("```json", "").replace("```", "")
 
         try:
-            return json.loads(cleaned)
-        except Exception:
+            return json.loads(text_output)
+        except:
             return {
-                "error": "Model did not return valid JSON",
-                "raw_output": cleaned
+                "error": "Invalid JSON from model",
+                "raw_output": text_output
             }
 
     except Exception as e:
