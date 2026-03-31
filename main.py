@@ -31,4 +31,5 @@ def home():
 def study(req: Request):
     return study_agent(req.text)
 
-print("KEY STARTS WITH:", os.getenv("GEMINI_API_KEY")[:6])
+key = os.getenv("GEMINI_API_KEY")
+print("KEY STARTS WITH:", key[:6] if key else "❌ KEY IS NONE - NOT SET!")
